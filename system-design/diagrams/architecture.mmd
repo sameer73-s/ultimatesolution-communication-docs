@@ -1,0 +1,77 @@
+flowchart TB
+    Flutter["Flutter Client\nClean Architecture • flutter_bloc • Dio • get_it"]
+
+    subgraph API["UltimateSolution.API"]
+        Controllers["Controllers\nAuth • Chat • Meetings • AiSummary • Notifications"]
+        Middleware["Exception Middleware\nResult Envelope • JWT Auth • Swagger/OpenAPI"]
+        Endpoints["SignalR Endpoint Mapping"]
+    end
+
+    subgraph Application["UltimateSolution.Application"]
+        Features["CQRS / MediatR Features\nCommands • Queries • Handlers • DTOs • FluentValidation"]
+        AppInterfaces["Application Interfaces\nIApplicationDbContext\nIUnitOfWork\nIMeetingMediaService\nITranscriptionService\nIAiSummaryService\nIOutboundNotificationService"]
+        Contracts["Provider-neutral contracts\nMeetingMediaSession\nJoinMeetingResult\nRecordingResult"]
+    end
+
+    subgraph Domain["UltimateSolution.Domain"]
+        DomainModel["Entities • Enums • Domain Exceptions\nMeeting • ChatChannel • ChatMessage\nMeetingRecording • ActionItem"]
+        DomainRules["Business invariants\nNo framework or provider dependencies"]
+    end
+
+    subgraph Infrastructure["UltimateSolution.Infrastructure"]
+        Persistence["Persistence\nEF Core DbContext • Repositories • Unit of Work"]
+        Identity["Identity\nASP.NET Identity • JWT implementation"]
+        Realtime["Realtime\nSignalR Hubs • Presence • Chat events"]
+        MediaAdapter["JitsiMeetingMediaService\nOnly Jitsi SDK/API boundary"]
+        AIAdapters["AI Adapters\nTranscription • Summarization • Task extraction"]
+        NotificationAdapter["Notification Adapter\nIn-app now • Email extension later"]
+    end
+
+    SQL[("SQL Server")]
+    Jitsi["Jitsi Media Layer"]
+    AI["External AI Service\nSpeech-to-text + Summary"]
+    Mail["Future Mail Provider\nNot implemented in current scope"]
+
+    Flutter -->|HTTPS REST| Controllers
+    Flutter -->|SignalR WebSocket| Endpoints
+    Controllers --> Middleware
+    Controllers -->|Commands / Queries| Features
+    Endpoints -->|Events only| Realtime
+
+    Features -->|uses abstractions only| AppInterfaces
+    Features --> DomainModel
+    Features --> Contracts
+    DomainModel --> DomainRules
+
+    Persistence -.implements.-> AppInterfaces
+    Identity -.implements.-> AppInterfaces
+    Realtime -.publishes domain events.-> Features
+    MediaAdapter -.implements only.-> AppInterfaces
+    AIAdapters -.implements.-> AppInterfaces
+    NotificationAdapter -.implements.-> AppInterfaces
+    Persistence --> SQL
+    MediaAdapter --> Jitsi
+    AIAdapters --> AI
+    NotificationAdapter -.future.-> Mail
+
+    Controllers -.host composition only.-> Infrastructure
+
+    Note["Mandatory isolation rule\nIMeetingMediaService is defined in Application.\nJitsiMeetingMediaService exists only in Infrastructure.\nNo direct Jitsi dependency in Domain, Application, API, or Flutter."]
+    AppInterfaces -.specifies.-> Note
+    MediaAdapter -.conforms.-> Note
+
+    classDef client fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
+    classDef api fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
+    classDef app fill:#fff3e0,stroke:#ef6c00,color:#e65100
+    classDef domain fill:#fce4ec,stroke:#ad1457,color:#880e4f
+    classDef infra fill:#f3e5f5,stroke:#7b1fa2,color:#4a148c
+    classDef external fill:#f5f5f5,stroke:#616161,color:#212121
+    classDef note fill:#fff8e1,stroke:#f9a825,color:#5f370e
+
+    class Flutter client
+    class Controllers,Middleware,Endpoints api
+    class Features,AppInterfaces,Contracts app
+    class DomainModel,DomainRules domain
+    class Persistence,Identity,Realtime,MediaAdapter,AIAdapters,NotificationAdapter infra
+    class SQL,Jitsi,AI,Mail external
+    class Note note

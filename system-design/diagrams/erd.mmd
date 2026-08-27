@@ -1,0 +1,225 @@
+erDiagram
+    APP_USER {
+        string Id PK
+        string Email UK
+        string UserName UK
+        bool IsActive
+        datetime CreatedAtUtc
+        string ConcurrencyStamp
+    }
+
+    USER_PROFILE {
+        string UserId PK, FK
+        string DisplayName
+        string JobTitle
+        string Department
+        string AvatarUrl
+        datetime UpdatedAtUtc
+    }
+
+    ROLE {
+        string Id PK
+        string Name UK
+        string NormalizedName UK
+    }
+
+    USER_ROLE {
+        string UserId PK, FK
+        string RoleId PK, FK
+        datetime AssignedAtUtc
+        string AssignedByUserId FK
+    }
+
+    CHAT_CHANNEL {
+        uuid Id PK
+        string Kind "Direct|Group|Channel"
+        string Name
+        string CreatedByUserId FK
+        bool IsArchived
+        datetime CreatedAtUtc
+    }
+
+    CHANNEL_MEMBERSHIP {
+        uuid ChannelId PK, FK
+        string UserId PK, FK
+        string MemberRole "Owner|Member"
+        datetime JoinedAtUtc
+        datetime LastReadAtUtc
+        datetime MutedUntilUtc
+    }
+
+    CHAT_MESSAGE {
+        uuid Id PK
+        uuid ChannelId FK
+        string SenderId FK
+        uuid ReplyToMessageId FK
+        string Body
+        string ContentType "Text|System|File"
+        datetime SentAtUtc
+        datetime EditedAtUtc
+        datetime DeletedAtUtc
+    }
+
+    MESSAGE_ATTACHMENT {
+        uuid Id PK
+        uuid MessageId FK
+        string StorageObjectKey
+        string FileName
+        string ContentType
+        long SizeBytes
+    }
+
+    MESSAGE_READ_RECEIPT {
+        uuid MessageId PK, FK
+        string UserId PK, FK
+        datetime ReadAtUtc
+    }
+
+    MEETING {
+        uuid Id PK
+        uuid ChannelId FK
+        string OrganizerId FK
+        string Title
+        string Description
+        datetime ScheduledStartUtc
+        datetime ScheduledEndUtc
+        datetime StartedAtUtc
+        datetime EndedAtUtc
+        string Status "Scheduled|Live|Ended|Cancelled"
+        string MediaSessionReference
+        datetime CreatedAtUtc
+    }
+
+    MEETING_PARTICIPANT {
+        uuid MeetingId PK, FK
+        string UserId PK, FK
+        string ParticipantRole "Organizer|Presenter|Attendee"
+        datetime InvitedAtUtc
+        datetime JoinedAtUtc
+        datetime LeftAtUtc
+    }
+
+    MEETING_AGENDA_ITEM {
+        uuid Id PK
+        uuid MeetingId FK
+        int SortOrder
+        string Title
+        string OwnerUserId FK
+        bool IsCompleted
+    }
+
+    MEETING_RECORDING {
+        uuid Id PK
+        uuid MeetingId FK
+        string StorageObjectKey
+        string MediaRecordingReference
+        string Status "Pending|Available|Failed|Deleted"
+        int DurationSeconds
+        datetime AvailableAtUtc
+    }
+
+    TRANSCRIPTION_JOB {
+        uuid Id PK
+        uuid RecordingId FK
+        string ProviderKey
+        string Status "Queued|Processing|Completed|Failed"
+        string ProviderJobReference
+        string SourceLanguage
+        datetime RequestedAtUtc
+        datetime CompletedAtUtc
+        string ErrorCode
+    }
+
+    TRANSCRIPTION_SEGMENT {
+        uuid Id PK
+        uuid TranscriptionJobId FK
+        int SequenceNumber
+        decimal StartSecond
+        decimal EndSecond
+        string SpeakerReference
+        string Text
+        decimal Confidence
+    }
+
+    MEETING_SUMMARY {
+        uuid Id PK
+        uuid MeetingId FK
+        uuid TranscriptionJobId FK
+        string ProviderKey
+        string Status "Draft|Ready|Failed|Approved"
+        string SummaryText
+        string DecisionsJson
+        datetime GeneratedAtUtc
+        string ApprovedByUserId FK
+    }
+
+    ACTION_ITEM {
+        uuid Id PK
+        uuid MeetingId FK
+        uuid SummaryId FK
+        string AssigneeUserId FK
+        string CreatedByUserId FK
+        string Title
+        string Description
+        datetime DueAtUtc
+        string Status "Open|InProgress|Done|Cancelled"
+        datetime CompletedAtUtc
+    }
+
+    NOTIFICATION {
+        uuid Id PK
+        string RecipientUserId FK
+        string Type "Chat|Meeting|ActionItem|System"
+        string Title
+        string Body
+        string SourceType
+        string SourceId
+        datetime CreatedAtUtc
+        datetime ReadAtUtc
+    }
+
+    AUDIT_LOG {
+        uuid Id PK
+        string ActorUserId FK
+        string EntityType
+        string EntityId
+        string Action
+        string CorrelationId
+        string MetadataJson
+        datetime OccurredAtUtc
+    }
+
+    APP_USER ||--|| USER_PROFILE : has
+    APP_USER ||--o{ USER_ROLE : assigned
+    ROLE ||--o{ USER_ROLE : grants
+    APP_USER ||--o{ USER_ROLE : assigns
+
+    APP_USER ||--o{ CHAT_CHANNEL : creates
+    CHAT_CHANNEL ||--o{ CHANNEL_MEMBERSHIP : contains
+    APP_USER ||--o{ CHANNEL_MEMBERSHIP : joins
+    CHAT_CHANNEL ||--o{ CHAT_MESSAGE : contains
+    APP_USER ||--o{ CHAT_MESSAGE : sends
+    CHAT_MESSAGE ||--o{ CHAT_MESSAGE : replies_to
+    CHAT_MESSAGE ||--o{ MESSAGE_ATTACHMENT : includes
+    CHAT_MESSAGE ||--o{ MESSAGE_READ_RECEIPT : read_by
+    APP_USER ||--o{ MESSAGE_READ_RECEIPT : acknowledges
+
+    CHAT_CHANNEL o|--o{ MEETING : contextualizes
+    APP_USER ||--o{ MEETING : organizes
+    MEETING ||--o{ MEETING_PARTICIPANT : includes
+    APP_USER ||--o{ MEETING_PARTICIPANT : attends
+    MEETING ||--o{ MEETING_AGENDA_ITEM : has
+    APP_USER o|--o{ MEETING_AGENDA_ITEM : owns
+    MEETING ||--o{ MEETING_RECORDING : produces
+    MEETING_RECORDING ||--o{ TRANSCRIPTION_JOB : submits
+    TRANSCRIPTION_JOB ||--o{ TRANSCRIPTION_SEGMENT : yields
+    MEETING ||--o{ MEETING_SUMMARY : summarizes
+    TRANSCRIPTION_JOB ||--o{ MEETING_SUMMARY : supports
+    APP_USER o|--o{ MEETING_SUMMARY : approves
+    MEETING ||--o{ ACTION_ITEM : produces
+    MEETING_SUMMARY o|--o{ ACTION_ITEM : extracts
+    APP_USER ||--o{ ACTION_ITEM : owns
+    APP_USER ||--o{ ACTION_ITEM : creates
+
+    APP_USER ||--o{ NOTIFICATION : receives
+    APP_USER o|--o{ AUDIT_LOG : acts

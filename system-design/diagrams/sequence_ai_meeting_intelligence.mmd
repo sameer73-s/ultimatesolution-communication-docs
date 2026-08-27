@@ -1,0 +1,58 @@
+sequenceDiagram
+    autonumber
+    participant Media as IMeetingMediaService
+    participant JitsiAdapter as Infrastructure: JitsiMeetingMediaService
+    participant App as Application: Meetings + AiSummary handlers
+    participant Db as IApplicationDbContext
+    participant Storage as Object Storage Adapter
+    participant Queue as Background Job Queue
+    participant Speech as ITranscriptionService
+    participant Summary as IAiSummaryService
+    participant Hub as SignalR NotificationHub
+    actor Manager as Manager / Organizer
+    participant Flutter as Flutter Client
+
+    Note over Media,JitsiAdapter: Jitsi returns a provider recording reference only through Infrastructure.
+    Media->>JitsiAdapter: StopRecordingAsync(StopRecordingRequest)
+    JitsiAdapter-->>Media: RecordingResult(mediaRecordingReference)
+    Media-->>App: Provider-neutral recording result
+    App->>Db: Create MeetingRecording(status=Pending)
+    App->>Queue: Enqueue ProcessMeetingRecording(recordingId)
+    App-->>Hub: Publish recordingProcessing
+    Hub-->>Flutter: recordingProcessing
+
+    Queue->>App: ProcessMeetingRecording(recordingId)
+    App->>Db: Load recording + authorize workflow state
+    App->>Storage: Resolve / persist media object using opaque reference
+    Storage-->>App: StorageObjectKey
+    App->>Db: Update recording storage reference
+    App->>Speech: TranscribeAsync(TranscriptionRequest)
+    Note over Speech: Concrete Whisper/Azure Speech adapter is resolved in Infrastructure.
+    Speech-->>App: TranscriptionAccepted(providerJobReference)
+    App->>Db: Create TranscriptionJob(status=Processing)
+
+    loop Until transcription terminal state
+        App->>Speech: GetStatusAsync(providerJobReference)
+        Speech-->>App: Processing or completed result
+    end
+
+    alt Transcription completed
+        App->>Db: Save segments and mark job Completed
+        App->>Summary: GenerateMeetingSummaryAsync(summary request)
+        Note over Summary: Concrete summarization/task-extraction provider is resolved in Infrastructure.
+        Summary-->>App: SummaryDraft(decisions, proposedActionItems)
+        App->>Db: Save MeetingSummary(status=Draft)
+        App-->>Hub: Publish summaryReadyForReview
+        Hub-->>Flutter: summaryReadyForReview
+        Manager->>Flutter: Review and approve summary
+        Flutter->>App: ApproveMeetingSummaryCommand
+        App->>Db: Mark summary Approved and persist confirmed tasks
+        App-->>Hub: Publish actionItemsCreated
+        Hub-->>Flutter: actionItemsCreated
+    else Transcription failed
+        App->>Db: Mark job Failed with ErrorCode
+        App-->>Hub: Publish transcriptionFailed
+        Hub-->>Flutter: transcriptionFailed
+    end
+
+    Note over App,Flutter: AI output is reviewable and tasks become operational only after summary approval.

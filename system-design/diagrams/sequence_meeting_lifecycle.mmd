@@ -1,0 +1,77 @@
+sequenceDiagram
+    autonumber
+    actor Organizer as Organizer
+    participant Flutter as Flutter Client
+    participant API as API / MeetingsController
+    participant App as Application Command Handler
+    participant Db as IApplicationDbContext
+    participant Media as IMeetingMediaService
+    participant JitsiAdapter as Infrastructure: JitsiMeetingMediaService
+    participant Jitsi as Jitsi Media Layer
+    participant Hub as SignalR MeetingHub
+
+    Note over Flutter,App: Flutter and API use provider-neutral API contracts only.
+    Organizer->>Flutter: Start scheduled meeting
+    Flutter->>API: POST /v1/meetings/{id}/start
+    API->>App: StartMeetingCommand
+    App->>Db: Load meeting and authorize organizer
+    Db-->>App: Meeting
+    App->>Media: StartMeetingAsync(StartMeetingMediaRequest)
+    Note over Media,JitsiAdapter: Dependency injection resolves the Application interface.
+    Media->>JitsiAdapter: Provider-neutral request
+    JitsiAdapter->>Jitsi: Create / start provider session
+    Jitsi-->>JitsiAdapter: Provider session response
+    JitsiAdapter-->>Media: MeetingMediaSession (opaque reference)
+    Media-->>App: MeetingMediaSession
+    App->>Db: Mark meeting Live and save MediaSessionReference
+    App->>Hub: Publish MeetingStarted event
+    App-->>API: StartMeetingResult
+    API-->>Flutter: 200 Result{data}
+    Hub-->>Flutter: meetingStarted
+
+    actor Attendee as Attendee
+    Attendee->>Flutter: Join meeting
+    Flutter->>API: POST /v1/meetings/{id}/join
+    API->>App: JoinMeetingCommand
+    App->>Db: Authorize participant and load meeting
+    Db-->>App: Meeting + participant
+    App->>Media: JoinParticipantAsync(JoinMeetingParticipantRequest)
+    Media->>JitsiAdapter: Provider-neutral request
+    JitsiAdapter->>Jitsi: Create join authorization
+    Jitsi-->>JitsiAdapter: Provider launch information
+    JitsiAdapter-->>Media: JoinMeetingResult (opaque launch contract)
+    Media-->>App: JoinMeetingResult
+    App->>Db: Record participant join
+    App-->>API: JoinMeetingResult
+    API-->>Flutter: 200 Result{data.mediaLaunchUrl}
+    Note over Flutter: Flutter launches a generic media experience. It has no Jitsi SDK/API dependency.
+
+    Organizer->>Flutter: Start recording
+    Flutter->>API: POST /v1/meetings/{id}/recording/start
+    API->>App: StartMeetingRecordingCommand
+    App->>Media: StartRecordingAsync(StartRecordingRequest)
+    Media->>JitsiAdapter: Provider-neutral request
+    JitsiAdapter->>Jitsi: Start recording
+    Jitsi-->>JitsiAdapter: Recording reference
+    JitsiAdapter-->>Media: RecordingResult
+    Media-->>App: RecordingResult
+    App->>Db: Create or update MeetingRecording
+    App-->>API: Recording status
+    API-->>Flutter: 200 Result{data}
+
+    Organizer->>Flutter: End meeting
+    Flutter->>API: POST /v1/meetings/{id}/end
+    API->>App: EndMeetingCommand
+    App->>Media: EndMeetingAsync(EndMeetingMediaRequest)
+    Media->>JitsiAdapter: Provider-neutral request
+    JitsiAdapter->>Jitsi: End provider session
+    Jitsi-->>JitsiAdapter: Ended
+    JitsiAdapter-->>Media: EndMeetingResult
+    Media-->>App: EndMeetingResult
+    App->>Db: Mark meeting Ended and participant exits
+    App->>Hub: Publish MeetingEnded event
+    App-->>API: EndMeetingResult
+    API-->>Flutter: 200 Result{data}
+    Hub-->>Flutter: meetingEnded
+
+    Note over JitsiAdapter,Jitsi: Only Infrastructure contains direct Jitsi SDK/API calls.
