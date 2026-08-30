@@ -109,6 +109,10 @@ public interface IMeetingSummaryApprovalPolicy
 
 يقلل القرار خطر تحويل مخرجات احتمالية إلى التزامات تشغيلية غير مراجعة، ويحافظ على قابلية تمديد حوكمة الاعتماد دون إعادة تصميم المنطق الأساسي.
 
+## ADR-006: ترحيل مزود قاعدة البيانات إلى PostgreSQL
+
+يُستبدل SQL Server بـ PostgreSQL عبر `Npgsql.EntityFrameworkCore.PostgreSQL` لتبسيط الاستضافة على Render. معرفة المزود محصورة في Infrastructure، وتُعاد توليد هجرة أولية واحدة بعد حذف أنواع SQL Server من السلسلة السابقة. التفاصيل الكاملة في [ADR-006-postgresql-migration.md](ADR-006-postgresql-migration.md). لا يشمل القرار النشر الفعلي على Render.
+
 ## قرارات ما زالت مفتوحة قبل التنفيذ
 
 لا تحسم المرحلة 1 العناصر التالية. ينبغي اعتمادها قبل الإنتاج ضمن إعدادات Infrastructure أو الخدمات المتخصصة، ولا ينبغي افتراضها ضمن Domain أو Application أو Flutter.

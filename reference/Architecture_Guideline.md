@@ -1,6 +1,6 @@
 # دليل معماري (Architecture Guideline)
 ## مشروع منصة التواصل المؤسسي – Ultimate Solution
-**الإصدار:** 1.0
+**الإصدار:** 1.1
 **الغرض:** هذا المستند هو المرجع الثابت الذي يُعاد استخدامه في كل مهمة تُرسل إلى Manus. أي كود أو تصميم يُنتَج في هذا المشروع **يجب** أن يلتزم بما هو موثّق هنا، ولا يجوز الانحراف عنه دون موافقة صريحة.
 
 ---
@@ -23,7 +23,7 @@
 | الطبقة | التقنية | ملاحظات |
 |---|---|---|
 | Backend API | **ASP.NET Core Web API** (أحدث LTS) | Clean Architecture |
-| قاعدة البيانات | **SQL Server** + **Entity Framework Core** (Code-First) | |
+| قاعدة البيانات | **PostgreSQL** + **Entity Framework Core** (Code-First) عبر `Npgsql.EntityFrameworkCore.PostgreSQL` | **ADR-006:** استُبدل SQL Server لتبسيط الاستضافة على Render. معرفة المزود محصورة في Infrastructure. |
 | الاتصال الفوري | **SignalR** | للشات، الحضور، وإشارات المكالمات (signaling) |
 | المكالمات | **Jitsi** (قرار معتمد للمرحلة الحالية) خلف تجريد كامل `IMeetingMediaService` في طبقة Application | **إلزامي:** لا يوجد أي اعتماد مباشر على Jitsi خارج `Infrastructure`. الهدف: استبدال لاحق بمحرك WebRTC مخصص بالكامل (عندما يُطلب تحكم كامل في تجربة الوسائط) دون أي تعديل على Application أو API أو Flutter. أي كود يستدعي وظائف الاجتماع (بدء/إنهاء/انضمام/تسجيل) يمر حصراً عبر هذه الواجهة |
 | المصادقة | **ASP.NET Identity + JWT** | صلاحيات (Roles): Admin / Manager / Employee |

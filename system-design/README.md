@@ -6,7 +6,7 @@
 
 ## ما تم تثبيته
 
-تلتزم البنية المقترحة بـ ASP.NET Core Web API وSQL Server وEntity Framework Core وSignalR وASP.NET Identity + JWT في الخلفية، وبـ Flutter و`flutter_bloc` و`Dio` و`get_it` في العميل. تتبع الخلفية Clean Architecture وCQRS/MediatR وRepository + Unit of Work، مع وضع كل Feature في نطاقه المنفصل.
+تلتزم البنية المقترحة بـ ASP.NET Core Web API وPostgreSQL وEntity Framework Core وSignalR وASP.NET Identity + JWT في الخلفية، وبـ Flutter و`flutter_bloc` و`Dio` و`get_it` في العميل. تتبع الخلفية Clean Architecture وCQRS/Mediator وRepository + Unit of Work، مع وضع كل Feature في نطاقه المنفصل. يوثق ADR-006 اعتماد PostgreSQL بدل SQL Server لتبسيط الاستضافة على Render.
 
 تم اعتماد **Jitsi** لطبقة وسائط الاجتماعات في المرحلة الحالية، مع قيد معماري ملزم: يُعرّف `IMeetingMediaService` داخل Application، وتبقى كل معرفة مباشرة بـ Jitsi وتنفيذه داخل Infrastructure فقط. وقد صُمم النموذج وعقود API ومخططات التسلسل باستخدام أسماء عامة عن المزوّد، بحيث يمكن تسجيل `WebRtcMeetingMediaService` مستقبلاً من دون تغيير Application أو API أو Flutter.
 
@@ -34,7 +34,7 @@
 |---|---|---|
 | `UltimateSolution.Domain` | الكيانات والـEnums والاستثناءات وقواعد المجال | لا تعتمد على أي طبقة أو إطار عمل أو مزوّد خارجي. |
 | `UltimateSolution.Application` | Use Cases وCQRS/MediatR وDTOs وFluentValidation وواجهات التجريد | تعتمد على Domain فقط؛ تستخدم الواجهات لا التنفيذات. |
-| `UltimateSolution.Infrastructure` | EF Core وIdentity وSignalR والـRepositories والـAdapters الخارجية | تنفذ واجهات Application وتتكامل مع SQL Server وJitsi وخدمات AI. |
+| `UltimateSolution.Infrastructure` | EF Core وIdentity وSignalR والـRepositories والـAdapters الخارجية | تنفذ واجهات Application وتتكامل مع PostgreSQL وJitsi وخدمات AI. |
 | `UltimateSolution.API` | Controllers وMiddleware وSwagger/ OpenAPI واستضافة SignalR | يمرر الطلبات إلى Application؛ لا يحتوي منطق أعمال أو SDK خاصًا بالمزوّد. |
 | Flutter | العرض وBloc واستخدام Use Cases للعميل وشبكة Dio | يستهلك REST وSignalR بعقود عامة، ولا يعرف Jitsi مباشرة. |
 
