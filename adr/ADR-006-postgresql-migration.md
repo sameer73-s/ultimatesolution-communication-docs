@@ -34,3 +34,8 @@
 النشر الفعلي على Render، واختيار الخطة التجارية والمنطقة، وإدارة أسرار الإنتاج: كلها مؤجلة لخطوة لاحقة بعد اعتماد هذا القرار.
 
 التنفيذ التفصيلي ومراجعة الهجرات موجودان في مستودع Backend: `docs/adr/ADR-006-postgresql-migration.md` و`docs/database-provider-migration.md`.
+
+## ملاحظات لاحقة
+
+اعتماد الفهرس الفريد على مصدر الرسالة في PostgreSQL عبر الهجرة `20260901202720_Phase383ActionItemUniqueSourceMessage` تنفيذ لاحق، ولا يغيّر قرار ADR-006.
+يبقى المزود PostgreSQL عبر `Npgsql.EntityFrameworkCore.PostgreSQL`، وتبقى معرفة المزود محصورة في Infrastructure كما في القرار الأصلي.
